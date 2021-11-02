@@ -441,7 +441,7 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         break;
 
       case 41:
-        piezoThresh_ += 10;
+        piezoThresh_ += 5;
         if (piezoThresh_ > 990) {
           piezoThresh_ = 20;
         }
@@ -534,7 +534,7 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         break;
 
       case 41:
-        piezoThresh_ -= 10;
+        piezoThresh_ -= 5;
         if (piezoThresh_ < 20) {
           piezoThresh_ = 990;
         }
