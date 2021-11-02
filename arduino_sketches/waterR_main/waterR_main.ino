@@ -1,8 +1,8 @@
-/* 
-WaterR is an open source device to control and monitor fluid intake in experimental rodents.
-Initially developed by Riccardo Avvisati at the University of Bristol in 2020
+/*
+  WaterR is an open source device to control and monitor fluid intake in experimental rodents.
+  Initially developed by Riccardo Avvisati at the University of Bristol in 2020
 
-Released under GNU GPLv3 License.
+  Released under GNU GPLv3 License.
 */
 
 #include <LiquidCrystal.h>
@@ -45,6 +45,11 @@ int8_t minuteON_;
 int8_t hourOFF_;
 int8_t minuteOFF_;
 
+int8_t hourADJ;     //variables for manually adjusting the clock (too much drift, winter/summer time clock shift, etc.)
+int8_t minuteADJ;
+int8_t hourADJ_;
+int8_t minuteADJ_;
+
 uint8_t hourNOW;
 uint8_t minuteNOW;
 uint8_t dayNOW;
@@ -57,18 +62,19 @@ uint16_t timestampOFF;
 char volumeTem[5];        //char buffers for printf function
 char timeONtem[10];
 char timeOFFtem[10];
-char timeONprogTem[5];
-char timeOFFprogTem[5];
 char hourONtem[3];
 char minuteONtem[3];
 char hourOFFtem[3];
 char minuteOFFtem[3];
 char piezoThreshTem[4];
+char hourADJtem[3];
+char minuteADJtem[3];
+char timeADJtem[6];
 
 uint8_t piezoPin = A8;      //pin connected to piezo sensor
 uint8_t piezoGround = A9;   //pin that is pulled to ground to provide a "clean" ground for piezo sensor
 int piezoThresh;            //threshold for lick detection, value is stored in eeprom
-int piezoThresh_;           //temp var to hold user-modified
+int piezoThresh_;           //temp var to hold user-modified piezo threshold value
 uint32_t lastLickTime = 0;
 uint32_t debounceLick = 1000;
 
@@ -153,7 +159,6 @@ void updateScreen() {                         //function that updates the screen
 
           lcd.print(volumeLeft);
         }
-
         break;
 
       case 1:
@@ -176,7 +181,16 @@ void updateScreen() {                         //function that updates the screen
         lcd.setCursor(0, 0);
         lcd.print("Set piezo Threshold");
         break;
-
+      case 5:
+        { lcd.clear();
+          DateTime now = rtc.now();
+          sprintf(timeADJtem, "%02d:%02d", now.hour(), now.minute());
+          lcd.setCursor(0, 0);
+          lcd.print("Adjust Clock");
+          lcd.setCursor(4, 1);
+          lcd.print(timeADJtem);
+          break;
+        }
       case 11:
         if (lastMenuState == 1) {
           hourON_ = hourON;
@@ -263,6 +277,34 @@ void updateScreen() {                         //function that updates the screen
         lcd.setCursor(0, 1);
         lcd.print(piezoThresh_);
         break;
+
+      case 51:
+        if (lastMenuState == 5) {
+          DateTime now = rtc.now();
+          hourADJ_ = now.hour();
+          minuteADJ_ = now.minute();
+        }
+        sprintf(hourADJtem, "%02d", hourADJ_);
+        sprintf(minuteADJtem, "%02d", minuteADJ_);
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Set current time");
+        lcd.setCursor(4, 1);
+        lcd.print(hourADJtem);
+        lcd.print(":");
+        lcd.print(minuteADJtem);
+
+        lcd.setCursor(3, 1);
+        lcd.print(">");
+        break;
+
+      case 52:
+        lcd.setCursor(3, 1);
+        lcd.print(" ");
+        lcd.setCursor(9, 1);
+        lcd.print("<");
+        break;
     }
     lastMenuState = menuState;
   }
@@ -301,6 +343,18 @@ void updateScreen() {                         //function that updates the screen
         lcd.print(piezoThreshTem);
         break;
 
+      case 51:
+        sprintf(hourADJtem, "%02d", hourADJ_);
+        lcd.setCursor(4, 1);
+        lcd.print(hourADJtem);
+        break;
+
+      case 52:
+        sprintf(minuteADJtem, "%02d", minuteADJ_);
+        lcd.setCursor(7, 1);
+        lcd.print(minuteADJtem);
+        break;
+
       case 0:
         volumeLeft = (float(volume) - deliveredUnits / deliveryUnits100ul) / 10;
         lcd.setCursor(13, 1);
@@ -322,7 +376,7 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
   if ((button == 1) && (millis() - lastInputTime >= debounce)) {                      //Up button
     switch (menuState) {
       case 0:
-        menuState = 4;
+        menuState = 5;
         break;
       case 1:
         menuState = 0;
@@ -335,6 +389,9 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         break;
       case 4:
         menuState = 3;
+        break;
+      case 5:
+        menuState = 4;
         break;
 
       case 31:
@@ -391,6 +448,20 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         updateFlag = true;
         break;
 
+      case 51:
+        hourADJ_++;
+        if (hourADJ_ >= 24) {
+          hourADJ_ = 0;
+        }
+        updateFlag = true;
+        break;
+      case 52:
+        minuteADJ_++;
+        if (minuteADJ_ >= 60) {
+          minuteADJ_ = 0;
+        }
+        updateFlag = true;
+        break;
     }
     lastInputTime = millis();
   }
@@ -410,6 +481,9 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         menuState = 4;
         break;
       case 4:
+        menuState = 5;
+        break;
+      case 5:
         menuState = 0;
         break;
 
@@ -466,6 +540,21 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         }
         updateFlag = true;
         break;
+
+      case 51:
+        hourADJ_--;
+        if (hourADJ_ < 0) {
+          hourADJ_ = 23;
+        }
+        updateFlag = true;
+        break;
+      case 52:
+        minuteADJ_--;
+        if (minuteADJ_ < 0) {
+          minuteADJ_ = 59;
+        }
+        updateFlag = true;
+        break;
     }
     lastInputTime = millis();
   }
@@ -484,6 +573,9 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
       case 4:
         menuState = 41;
         break;
+      case 5:
+        menuState = 51;
+        break;
 
       case 11:
         menuState = 12;
@@ -499,19 +591,16 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         minuteON = minuteON_;
         hourOFF = hourOFF_;
         minuteOFF = minuteOFF_;
-
         EEPROM.write(0, hourON);
         EEPROM.write(1, minuteON);
         EEPROM.write(2, hourOFF);
         EEPROM.write(3, minuteOFF);
-
         menuState = 0;
         break;
 
       case 21:
         volume = volume_;
         EEPROM.write(4, volume);
-
         menuState = 0;
         break;
 
@@ -520,14 +609,26 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         break;
 
       case 41:
-        piezoThresh = piezoThresh_;
-        byte byte1write = piezoThresh >> 8;
-        byte byte2write = piezoThresh & 0xff;
+        { piezoThresh = piezoThresh_;
+          byte byte1write = piezoThresh >> 8;
+          byte byte2write = piezoThresh & 0xff;
+          EEPROM.write(6, byte1write);
+          EEPROM.write(7, byte2write);
+          menuState = 0;
+          break;
+        }
 
-        EEPROM.write(6, byte1write);
-        EEPROM.write(7, byte2write);
-        menuState = 0;
+      case 51:
+        menuState = 52;
         break;
+      case 52:
+        { hourADJ = hourADJ_;
+          minuteADJ = minuteADJ_;
+          DateTime now = rtc.now();
+          rtc.adjust(DateTime(now.year(), now.month(), now.day(), hourADJ_, minuteADJ_, 0));
+          menuState = 0;
+          break;
+        }
     }
     lastInputTime = millis();
   }
@@ -553,6 +654,13 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
 
       case 31:
         menuState = 3;
+        break;
+
+      case 51:
+        menuState = 5;
+        break;
+      case 52:
+        menuState = 51;
         break;
     }
     lastInputTime = millis();
@@ -710,7 +818,7 @@ void loop() {
 
   updateTimestamps();       //check current, on and off periods timestamps
   checkAllowance();         //check whether the daily consumption needs to be reset
-  deliverPriming();         //delivers priming 
+  deliverPriming();         //delivers priming
 
   uint16_t piezoSignal = readPiezoSignal();
 
