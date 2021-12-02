@@ -1,6 +1,10 @@
 # WaterR
-A device for controlling fluid intake in experimental rodents.
 
+WaterR is an open-source device developed in the Dodson lab at the University of Bristol to automate fluid restriction in experimental rodents. It allows the user to: set water-availability time windows, set a maximum daily volume allowance, or deliver ad libitum water to assess baseline water consumption. Automating water access-control offers the opportunity to significantly refine current practice. The ability to monitor water consumption on a cage-by-cage basis and the flexibility offered in programming different water-access regimens allows the implementation of tailored restriction approaches, while at the same time offering a standardised platform to aid reproducibility across different laboratories. 
+<p align="center">
+    <img src="img/final/WaterR_cages.jpeg" width="550">
+</p>
+&nbsp;
 
 ## List of components
 In the table below there is a list of all components necessary to assemble WaterR. A source for each component is added for ease but every component is readily available from other sources as well. Links or part numbers are added for ease; part numbers are provided as manufacturer numbers instead of supplier as it makes it easier to source the items from a different supplier should you need to do so. Multi-buy options are provided when possible as they are cheaper, the quantity required for a single WaterR unit is listed in the table.  
