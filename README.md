@@ -41,6 +41,7 @@ Note: it is important that the power supply is a grounded, desktop power supply 
 | Screw, M3 x 6mm                   | Technobots        | 4304-306                | 14                 |
 | Screw, M3 x 8mm, countersunk      | Technobots        | 4304-408                | 2                  |
 | Nut, M3                           | Technobots        | 4310-025                | 6                  |
+| Zip ties, 250mm	            | Amazon            | https://amz.run/5GKi    | 1                  |
 | Dupont wires, 10cm                | Amazon            | https://amzn.to/3834WxT | 6 (f-m), 1 (m-m)   |
 | CR1225 lithium battery            | Farnell           | CR1225                  | 1 (or 0)           |
 
@@ -225,6 +226,13 @@ Connect the 2 pins from the spout to A8 and A9 as shown in picture (it doesn’t
 Slot the Arduino + rtc/sd shield onto the keypad shield that is already secured to the front panel. Make sure wires are not under too much tension and make reliable contact.
 <p align="center">
     <img src="img/wiring/slot_frontPanel.jpg" width="400">
+</p>
+&nbsp;
+
+To secure the front panel assembly, slide a zip tie between the pcb and the lcd screen of the keypad shield as shown in the picture and tie it. Make sure the "head" of the zip tie ends on the back of the panel and not at the bottom or top (preventing the acrylic sheets from fitting). This step is easier if you temporarily unscrew the front panel from the base acrylic sheet.
+<p align="center">
+    <img src="img/front_panel/front_panel_ziptie_fit.jpg" width="350">
+    <img src="img/front_panel/front_panel_ziptie.jpg" width="350">
 </p>
 &nbsp;
 
