@@ -32,7 +32,7 @@ float lastVolumeLeft = -1;
 
 uint16_t deliveredUnits = 0;        //units of fluid delivered so far, initialize to zero
 uint16_t deliveryUnits100ul = 7;    //coefficient used to convert volume to stepper motor steps based on syringe size
-uint16_t lastResetDay;              //variable used to ensure that allowance is reset no more than once a day
+uint16_t lastAllowanceResetDay = 0;     //variable used to ensure that allowance is reset no more than once a day
 uint16_t lastPrimingDay = 0;        //variable used to ensure that priming water delivery isn't given more than once a day
 uint32_t lastWaterDeliveryTime = 0;
 
@@ -596,6 +596,10 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
         EEPROM.write(2, hourOFF);
         EEPROM.write(3, minuteOFF);
         menuState = 0;
+        lastAllowanceResetDay = 0;                //if timer is changed, zero the reset day so that allowance will reset when the new timer is reached 
+        EEPROM.write(9, lastAllowanceResetDay);
+        lastPrimingDay = 0;                       //if timer is changed, zero priming day so that a priming will be delivered when the new timer is reached
+        EEPROM.write(5, lastPrimingDay);
         break;
 
       case 21:
@@ -729,16 +733,16 @@ void checkAllowance() {                                                //functio
     EEPROM.write(8, volumeLeft);
   }
 
-  if ((timestampNOW >= timestampON) && (dayNOW != lastResetDay)) {    //if "now" is the time, reset the amount consumed so far
-    volumeLeft = volume;                                              //now.day returns the day number in the month, only reset if this value has changed since last reset (it is a different day)
-    lastResetDay = dayNOW;                                            //update lastResetDay 
-    EEPROM.write(9, lastResetDay);
+  if ((timestampNOW >= timestampON) && (dayNOW != lastAllowanceResetDay)) {    //if "now" is the time, reset the amount consumed so far
+    volumeLeft = volume;                                                       //now.day returns the day number in the month, only reset if this value has changed since last reset (it is a different day)
+    lastAllowanceResetDay = dayNOW;                                            //update lastAllowanceResetDay 
+    EEPROM.write(9, lastAllowanceResetDay);
   }
 }
 
 
 void deliverPriming() {
-  if ((dayNOW != lastPrimingDay) && (((timestampNOW >= timestampON) && (timestampNOW <= timestampOFF)) || (timestampON == timestampOFF))) {
+  if ((dayNOW != lastPrimingDay) && (((timestampNOW >= timestampON) && (timestampNOW <= timestampOFF)) || (timestampON + timestampOFF == 0))) {
     uint16_t primingSteps = 8 * floor(deliveryUnits100ul * 0.8);
     motor.step(primingSteps);
     stopMotor();
@@ -803,7 +807,7 @@ void setup() {
   }
   lastPrimingDay = EEPROM.read(5);
 
-  lastResetDay = EEPROM.read(9);
+  lastAllowanceResetDay = EEPROM.read(9);
   
   pinMode(53, OUTPUT);        //set hardware SPI CS pin as output (even if we're using software SPI)
   if (sd.begin(10)) {         //initialize SD card on pin 10, if that's successful..
