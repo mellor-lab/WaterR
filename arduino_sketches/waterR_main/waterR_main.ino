@@ -27,12 +27,12 @@ uint8_t volume;             //volume daily allowance in thents of ml (so that 1.
 uint8_t volume_;            //temp variable that is used to modify the volume value and overwrite it
 float volumeLeft;           //variable to calculate volume left on allowance as floating point
 float volumeDisplay;        //variable used to display volume as floating point for human reading
+float volumeLeftDisplay;
 float lastVolumeLeft = -1;
 
-uint16_t deliveredUnits = 0;        //units of fluid delivered so far. initialized at 0
-uint16_t dayAllowanceUnits;
+uint16_t deliveredUnits = 0;        //units of fluid delivered so far, initialize to zero
 uint16_t deliveryUnits100ul = 7;    //coefficient used to convert volume to stepper motor steps based on syringe size
-uint16_t lastResetDay = 0;          //variable used to ensure that allowance is reset no more than once a day (except for power cycle)
+uint16_t lastResetDay;              //variable used to ensure that allowance is reset no more than once a day
 uint16_t lastPrimingDay = 0;        //variable used to ensure that priming water delivery isn't given more than once a day
 uint32_t lastWaterDeliveryTime = 0;
 
@@ -155,9 +155,9 @@ void updateScreen() {                         //function that updates the screen
           lcd.print("N/A");
         }
         else {
-          volumeLeft = (float(volume) - deliveredUnits / deliveryUnits100ul) / 10;
+          volumeLeftDisplay = float(volumeLeft) / 10;
 
-          lcd.print(volumeLeft);
+          lcd.print(volumeLeftDisplay);
         }
         break;
 
@@ -356,10 +356,10 @@ void updateScreen() {                         //function that updates the screen
         break;
 
       case 0:
-        volumeLeft = (float(volume) - deliveredUnits / deliveryUnits100ul) / 10;
+        volumeLeftDisplay = float(volumeLeft) / 10;
         lcd.setCursor(13, 1);
         if ((volume != 0) && (volumeLeft >= 0)) {
-          lcd.print(volumeLeft);
+          lcd.print(volumeLeftDisplay);
         }
         else if (volume == 0) {
           lcd.print("N/A");
@@ -601,6 +601,8 @@ void mapCommand(uint8_t button) {           //function that triggers a command d
       case 21:
         volume = volume_;
         EEPROM.write(4, volume);
+        volumeLeft = volume;
+        deliveredUnits = 0;
         menuState = 0;
         break;
 
@@ -685,15 +687,15 @@ bool gateIsOpen() {
     }
   }
   else if ((volume != 0) && (timestampON == timestampOFF)) {                    //if volume is different from 0 but timestamps are the same
-    if (deliveredUnits < volume * deliveryUnits100ul) {                         //return true if amount delivered so far is less than allowance
+    if (volumeLeft > 0) {                                                       //return true if there is still volume to be delivered
       return true;                                                              //fixed volume restriction
-    }                                                                           //deliveredUnits is going to be reset once daily at timestampON time (or when WaterR is reset or power-cycled)
+    }                                                                           
     else {
       return false;
     }
   }
-  else if ((volume != 0) && (timestampON != timestampOFF)) {                                                                       //if volume is different from 0 and timestamps are different from each other
-    if ((timestampNOW >= timestampON) && (timestampNOW < timestampOFF) && (deliveredUnits < volume * deliveryUnits100ul)) {        //hybrid fixed volume within fixed time window
+  else if ((volume != 0) && (timestampON != timestampOFF)) {                                       //if volume is different from 0 and timestamps are different from each other
+    if ((timestampNOW >= timestampON) && (timestampNOW < timestampOFF) && volumeLeft > 0) {        //hybrid mode: fixed volume within fixed time window
       return true;
     }
     else {
@@ -718,16 +720,19 @@ void updateTimestamps() {                       //this function polls the rtc an
 }
 
 
-void checkAllowance() {           //function that checks whether daily allowance should be reset
-  volumeLeft = volume - floor(deliveredUnits / deliveryUnits100ul);
+void checkAllowance() {                                                //function that controls daily allowance
+  volumeLeft -= floor(deliveredUnits / deliveryUnits100ul);
   if (volumeLeft != lastVolumeLeft) {
     updateFlag = true;
     lastVolumeLeft = volumeLeft;
+    deliveredUnits = 0;
+    EEPROM.write(8, volumeLeft);
   }
 
   if ((timestampNOW >= timestampON) && (dayNOW != lastResetDay)) {    //if "now" is the time, reset the amount consumed so far
-    deliveredUnits = 0;                                               //now.day returns the day number in the month, only reset if this value has changed since last reset (it is a different day)
-    lastResetDay = dayNOW;                                            //lastResetDay is not saved to EEPROM and thus not preserved between power cycles.
+    volumeLeft = volume;                                              //now.day returns the day number in the month, only reset if this value has changed since last reset (it is a different day)
+    lastResetDay = dayNOW;                                            //update lastResetDay 
+    EEPROM.write(9, lastResetDay);
   }
 }
 
@@ -791,14 +796,15 @@ void setup() {
   updateTimestamps();             //generate timestamps from values
 
   volume = EEPROM.read(4);
-  volumeLeft = volume;
-  dayAllowanceUnits = volume * deliveryUnits100ul;
+  volumeLeft = EEPROM.read(8);
 
   if (volume == 0) {        //if fixed volume is not active, overwrite lastPrimingDay EEPROM stored value so if device is power-cycled a priming is delivered even if it was already delivered during the day
     EEPROM.write(5, 0);
   }
   lastPrimingDay = EEPROM.read(5);
 
+  lastResetDay = EEPROM.read(9);
+  
   pinMode(53, OUTPUT);        //set hardware SPI CS pin as output (even if we're using software SPI)
   if (sd.begin(10)) {         //initialize SD card on pin 10, if that's successful..
     DateTime now = rtc.now(); //poll RTC for time
@@ -839,7 +845,7 @@ void loop() {
       logfile.println(",lick OK");      //log lick attemp with water delivery event
       logfile.flush();                  //flush file to ensure data is written to SD
 
-      deliveredUnits += 1;              //increment a counter that is used to calculate how big a volume has been consumed so far today
+      deliveredUnits++;                 //increment a counter that is used to calculate how big a volume has been consumed so far today
       lastWaterDeliveryTime = millis(); //note time of last water delivery (needed for primings to keep the spout wet if water has not been delivered in a while)
     }
     else if (!gateIsOpen()) {           //if conditions for water delivery are NOT met
