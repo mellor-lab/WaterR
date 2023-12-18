@@ -84,17 +84,24 @@ Now we can upload the software required to sync the clock and the WaterR firmwar
 
 
 ## Software
-Install the [Arduino IDE](https://www.arduino.cc/en/software) if you have not done so already.
-You should download the contents of the /libraries folder and paste them in your user/documents/Arduino/libraries folder. 
-Connect the Arduino to your PC through USB. Run the IDE and make sure you select Tools -> Board -> Arduino Mega or Mega 2560. Also, in Tools -> Port select the COM port assigned to your Arduino.
-In the /Arduino_sketches folder there are 3 sketches that should be uploaded to the Arduino. Best way of doing it is having all 3 of them opened and upload one after the other in the following order:
-Before uploading the sync_clock sketch, open the Serial Monitor. Set the baud rate to 9600.
+1. Install the [Arduino IDE](https://www.arduino.cc/en/software) if you have not done so already.
+
+2. Download the WaterR repository to your computer.
+
+3. Download the contents of the /libraries folder and paste them in your user/documents/Arduino/libraries folder. 
+
+4. Connect the Arduino to your PC through USB. Run the IDE and make sure you select Tools -> Board -> Arduino Mega or Mega 2560. Also, in Tools -> Port select the COM port assigned to your Arduino.
+
+5. In the /Arduino_sketches folder there are 3 sketches that should be uploaded to the Arduino. Open and Upload one after the other in the following order:
+
+> Before uploading the sync_clock sketch, open the Serial Monitor. Set the baud rate to 9600.
 - Upload **Sync_clock**.  
 This sketch synchronizes the DS1307 clock chip on the Arduino RTC shield with the clock on your PC. If everything is wired correctly and the sketch successfully uploads, you should see the Arduino outputting date and time to the serial monitor. Now close the serial monitor. Make sure not to restart the Arduino (do not disconnect, reset, nor open the Serial Monitor) as this could introduce clock discrepancies.
 - Upload **Load_defaults**.  
 This sketch loads some default values in the Arduino EEPROM.
 - Upload **WaterR_main**.  
-This sketch is the main WaterR firmware. If you cannot read any character on the lcd screen, you should adjust the contrast by turning the screw on the blue potentiometer clockwise until you can comfortably see white characters. You can safely disconnect the Arduino from the PC. WaterR is thought as a stand-alone device so after this sketch is uploaded it should not be necessary to reconnect it to a PC unless you want to modify the main program, in which case you will need to re-upload the modified version.
+This sketch is the main WaterR firmware. If you cannot read any character on the lcd screen, you should adjust the contrast by turning the screw on the blue potentiometer clockwise until you can comfortably see white characters. 
+6. You can safely disconnect the Arduino from the PC. WaterR is thought as a stand-alone device so after this sketch is uploaded it should not be necessary to reconnect it to a PC unless you want to modify the main program, in which case you will need to re-upload the modified version.
 <p align="center">
     <img src="img/arduino_block/contrast_clockwise.jpg" width="350">
     <img src="img/arduino_block/contrast_ok.jpg" width="350">
